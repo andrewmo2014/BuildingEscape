@@ -29,6 +29,21 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	FVector PlayerViewPointLoc;
+	FRotator PlayerViewPointRot;
+	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(
+		OUT PlayerViewPointLoc,
+		OUT PlayerViewPointRot
+	);
+	/*UE_LOG(LogTemp, Warning, TEXT("Location at %s, Rotation at %s"), *PlayerViewPointLoc.ToString(), *PlayerViewPointRot.ToString())*/
+
+	FVector LineTraceEnd = PlayerViewPointLoc + (PlayerViewPointRot.Vector() * Reach);
+
+	if (PhysicsHandle->GrabbedComponent)
+	{
+		PhysicsHandle->SetTargetLocation(LineTraceEnd);
+	}
+
 }
 
 //Setup input component
@@ -60,14 +75,20 @@ void UGrabber::FindPhysicsHandleComponent()
 void UGrabber::Grab()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Grab pressed"));
-	GetFirstPhysicsBodyInReach();
+	auto HitResult = GetFirstPhysicsBodyInReach();
+	auto ComponentToGrab = HitResult.GetComponent();
+	auto ActorHit = HitResult.GetActor();
+
+	if (ActorHit) {
+		PhysicsHandle->GrabComponent(ComponentToGrab, NAME_None, ComponentToGrab->GetOwner()->GetActorLocation(), true);
+	}
 }
 
 //Release response
 void UGrabber::Release()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Grab released"));
-
+	PhysicsHandle->ReleaseComponent();
 }
 
 //Get first physics body hit by line trace
@@ -110,7 +131,7 @@ const FHitResult UGrabber::GetFirstPhysicsBodyInReach()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Line trace hit: %s"), *(ActorHit->GetName()));
 	}
-	return FHitResult();
+	return Hit;
 }
 
 
